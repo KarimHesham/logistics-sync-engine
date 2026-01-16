@@ -186,7 +186,21 @@ export class IngestConsumer implements OnModuleInit {
             }
 
             if (Object.keys(updates).length > 0) {
-              await this.ordersRepo.update(orderId, updates, tx);
+              const updatedOrder = await this.ordersRepo.update(
+                orderId,
+                updates,
+                tx,
+              );
+              await this.pgmqRepo.send(
+                'shopify_outbound',
+                {
+                  orderId,
+                  changedFields: updates,
+                  snapshot: updatedOrder,
+                },
+                0,
+                tx,
+              );
             }
 
             if (eventType === 'COURIER_STATUS_UPDATE') {
