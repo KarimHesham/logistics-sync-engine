@@ -7,15 +7,36 @@ import { Prisma } from '@prisma/client';
 export class EventInboxRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.EventInboxCreateInput): Promise<EventInboxEntity> {
-    return await this.prisma.eventInbox.create({
+  async create(
+    data: Prisma.EventInboxCreateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<EventInboxEntity> {
+    const client = tx || this.prisma;
+    return await client.eventInbox.create({
       data,
     });
   }
 
-  async findByDedupeKey(dedupeKey: string): Promise<EventInboxEntity | null> {
-    return await this.prisma.eventInbox.findUnique({
+  async findByDedupeKey(
+    dedupeKey: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<EventInboxEntity | null> {
+    const client = tx || this.prisma;
+    return await client.eventInbox.findUnique({
       where: { dedupeKey },
+    });
+  }
+
+  async updateStatus(
+    id: string,
+    status: string,
+    processedAt: Date | null,
+    tx?: Prisma.TransactionClient,
+  ): Promise<EventInboxEntity> {
+    const client = tx || this.prisma;
+    return await client.eventInbox.update({
+      where: { id },
+      data: { status, processedAt },
     });
   }
 
