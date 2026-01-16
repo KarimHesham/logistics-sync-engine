@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { OrdersRepository } from '../../../data-access/repositories/orders.repository';
 import { orders } from '@repo/dtos';
 import { ListMapper, Mapper } from '../../../common/mappers';
@@ -15,8 +16,20 @@ export class OrdersService {
     return Mapper(orders.OrderResponseDto, order);
   }
 
-  async getOrders(): Promise<orders.OrderResponseDto[]> {
-    const orderList = await this.ordersRepo.findAll();
-    return ListMapper(orders.OrderResponseDto, orderList);
+  async getOrders(
+    limit: number,
+    cursor?: string,
+  ): Promise<orders.OrderListResponseDto[]> {
+    const params: {
+      take?: number;
+      skip?: number;
+      cursor?: Prisma.OrderWhereUniqueInput;
+    } = { take: limit };
+    if (cursor) {
+      params.cursor = { orderId: cursor };
+      params.skip = 1;
+    }
+    const orderList = await this.ordersRepo.findAll(params);
+    return ListMapper(orders.OrderListResponseDto, orderList);
   }
 }

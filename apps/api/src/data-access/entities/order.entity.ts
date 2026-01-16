@@ -1,5 +1,6 @@
 import { Order } from '@prisma/client';
 import { BaseEntity } from './base.entity';
+import { ShipmentEntity } from './shipment.entity';
 
 export class OrderEntity extends BaseEntity implements Order {
   orderId: string;
@@ -14,4 +15,5 @@ export class OrderEntity extends BaseEntity implements Order {
   country: string | null;
   shippingFeeCents: number;
   lastEventTs: Date;
+  shipments?: ShipmentEntity[];
 }

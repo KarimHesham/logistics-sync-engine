@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { OrdersService } from '../services/orders.service';
 import { orders } from '@repo/dtos';
 
@@ -7,8 +7,12 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  async getOrders(): Promise<orders.OrderResponseDto[]> {
-    return this.ordersService.getOrders();
+  async getOrders(
+    @Query('limit') limitArg?: string,
+    @Query('cursor') cursor?: string,
+  ): Promise<orders.OrderListResponseDto[]> {
+    const limit = limitArg ? parseInt(limitArg, 10) : 100;
+    return this.ordersService.getOrders(limit, cursor);
   }
 
   @Get(':id')
