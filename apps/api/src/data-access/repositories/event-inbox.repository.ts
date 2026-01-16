@@ -55,7 +55,18 @@ export class EventInboxRepository {
           },
         });
 
-        await tx.$queryRaw`SELECT * FROM pgmq.send('ingest_events', ${data.payload}::jsonb, 0)`;
+        const message = {
+          ...(typeof data.payload === 'object' ? data.payload : {}),
+          orderId: data.orderId,
+          dedupeKey: data.dedupeKey,
+          eventType: data.eventType,
+          eventTs: data.eventTs,
+        };
+
+        // Use Prisma.sql for safer parameterization and type handling
+        await tx.$queryRaw(
+          Prisma.sql`SELECT pgmq.send('ingest_events', ${message}::jsonb, 0)`,
+        );
 
         return event;
       });
