@@ -1,4 +1,4 @@
-import { EventInbox, Prisma } from '../../generated/prisma/client';
+import { EventInbox, Prisma } from '@prisma/client';
 import { BaseEntity } from './base.entity';
 
 export class EventInboxEntity extends BaseEntity implements EventInbox {

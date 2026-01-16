@@ -1,4 +1,4 @@
-import { Order } from '../../generated/prisma/client';
+import { Order } from '@prisma/client';
 import { BaseEntity } from './base.entity';
 
 export class OrderEntity extends BaseEntity implements Order {
