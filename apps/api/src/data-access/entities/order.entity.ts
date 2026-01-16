@@ -1,9 +1,17 @@
-export class OrderEntity {
-  id: string;
+import { Order } from '../../generated/prisma/client';
+import { BaseEntity } from './base.entity';
+
+export class OrderEntity extends BaseEntity implements Order {
   orderId: string;
   customerId: string;
-  totalAmount: number;
   status: string;
-  createdAt: Date;
-  updatedAt: Date;
+  totalAmount: number;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  country: string | null;
+  shippingFeeCents: number;
+  lastEventTs: Date;
 }
