@@ -6,6 +6,10 @@ import {
   EventInboxRepository,
   ShipmentsRepository,
 } from '../../../data-access/repositories';
+import {
+  ShipmentsService,
+  ShipmentUpdateEvent,
+} from '../../shipments/services/shipments.service';
 import { Prisma } from '@prisma/client';
 
 export interface IngestEventPayload {
@@ -38,6 +42,7 @@ export class IngestConsumer implements OnModuleInit {
     private readonly ordersRepo: OrdersRepository,
     private readonly eventInboxRepo: EventInboxRepository,
     private readonly shipmentsRepo: ShipmentsRepository,
+    private readonly shipmentsService: ShipmentsService,
   ) {}
 
   onModuleInit() {
@@ -111,6 +116,8 @@ export class IngestConsumer implements OnModuleInit {
         await this.pgmqRepo.delete(this.QUEUE_NAME, msg_id);
         return;
       }
+
+      let broadcastEvent: ShipmentUpdateEvent | null = null;
 
       await this.prisma.$transaction(async (tx) => {
         // 1. Acquire advisory lock
@@ -201,6 +208,16 @@ export class IngestConsumer implements OnModuleInit {
                 0,
                 tx,
               );
+
+              broadcastEvent = {
+                orderId,
+                serverTs: new Date().toISOString(),
+                changedFields: updates as Record<string, any>,
+                summary:
+                  eventType === 'SHOPIFY_CREATED'
+                    ? 'Order Created'
+                    : 'Order Updated',
+              };
             }
 
             if (eventType === 'COURIER_STATUS_UPDATE') {
@@ -214,6 +231,17 @@ export class IngestConsumer implements OnModuleInit {
                   },
                   tx,
                 );
+
+                // If we also had order updates, merge or overwrite?
+                // Let's issue a specific event if it's courier update.
+                // Assuming courier update handling falls here.
+                // If both happen, we might overwrite. But usually they are distinct events.
+                broadcastEvent = {
+                  orderId,
+                  serverTs: new Date().toISOString(),
+                  changedFields: { courierStatus: payload.status },
+                  summary: `Shipment Update: ${payload.status}`,
+                };
               }
             }
 
@@ -236,6 +264,10 @@ export class IngestConsumer implements OnModuleInit {
           msg_id,
         );
       });
+
+      if (broadcastEvent) {
+        this.shipmentsService.broadcast(broadcastEvent);
+      }
     } catch (err) {
       this.logger.error(`Failed to process message ${msg_id}`, err);
     }
