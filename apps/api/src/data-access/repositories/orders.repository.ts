@@ -14,12 +14,32 @@ export class OrdersRepository {
     const client = tx || this.prisma;
     return client.order.findUnique({
       where: { orderId },
-    });
+      include: { shipments: true },
+    }) as unknown as OrderEntity | null;
   }
 
-  async findAll(tx?: Prisma.TransactionClient): Promise<OrderEntity[]> {
+  async findAll(
+    params: {
+      skip?: number;
+      take?: number;
+      cursor?: Prisma.OrderWhereUniqueInput;
+      where?: Prisma.OrderWhereInput;
+      orderBy?: Prisma.OrderOrderByWithRelationInput;
+    } = {},
+    tx?: Prisma.TransactionClient,
+  ): Promise<OrderEntity[]> {
+    const { skip, take, cursor, where, orderBy } = params;
     const client = tx || this.prisma;
-    return client.order.findMany();
+    return client.order.findMany({
+      skip,
+      take,
+      cursor,
+      where,
+      orderBy,
+      include: {
+        shipments: true,
+      },
+    }) as unknown as OrderEntity[];
   }
 
   async create(
@@ -29,7 +49,8 @@ export class OrdersRepository {
     const client = tx || this.prisma;
     return client.order.create({
       data,
-    });
+      include: { shipments: true },
+    }) as unknown as OrderEntity;
   }
 
   async update(
@@ -41,6 +62,7 @@ export class OrdersRepository {
     return client.order.update({
       where: { orderId },
       data,
-    });
+      include: { shipments: true },
+    }) as unknown as OrderEntity;
   }
 }

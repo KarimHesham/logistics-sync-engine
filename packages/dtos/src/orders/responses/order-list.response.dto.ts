@@ -1,7 +1,7 @@
 import { Expose, Type } from "class-transformer";
 import { ShipmentResponseDto } from "../../shipments/responses/shipment.response.dto";
 
-export class OrderResponseDto {
+export class OrderListResponseDto {
   @Expose()
   id!: string;
 
