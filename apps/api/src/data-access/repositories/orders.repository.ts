@@ -7,18 +7,39 @@ import { Prisma } from '@prisma/client';
 export class OrdersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByOrderId(orderId: string): Promise<OrderEntity | null> {
-    return this.prisma.order.findUnique({
+  async findByOrderId(
+    orderId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<OrderEntity | null> {
+    const client = tx || this.prisma;
+    return client.order.findUnique({
       where: { orderId },
     });
   }
 
-  async findAll(): Promise<OrderEntity[]> {
-    return this.prisma.order.findMany();
+  async findAll(tx?: Prisma.TransactionClient): Promise<OrderEntity[]> {
+    const client = tx || this.prisma;
+    return client.order.findMany();
   }
 
-  async create(data: Prisma.OrderCreateInput): Promise<OrderEntity> {
-    return this.prisma.order.create({
+  async create(
+    data: Prisma.OrderCreateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<OrderEntity> {
+    const client = tx || this.prisma;
+    return client.order.create({
+      data,
+    });
+  }
+
+  async update(
+    orderId: string,
+    data: Prisma.OrderUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<OrderEntity> {
+    const client = tx || this.prisma;
+    return client.order.update({
+      where: { orderId },
       data,
     });
   }
