@@ -31,12 +31,37 @@ export class PgmqRepository {
     );
   }
 
-  async delete(queue: string, msgId: number): Promise<boolean> {
-    await this.prisma.$executeRawUnsafe(
-      `SELECT pgmq.delete($1, $2)`,
+  async send<T = unknown>(
+    queue: string,
+    msg: T,
+    delay: number = 0,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const client = tx || this.prisma;
+    const result = await client.$queryRawUnsafe<{ send: number }[]>(
+      `SELECT pgmq.send($1, $2, $3) as send`,
       queue,
-      msgId,
+      msg,
+      delay,
     );
+    return result[0]?.send;
+  }
+
+  async createQueue(queue: string): Promise<void> {
+    try {
+      await this.prisma.$executeRawUnsafe(`SELECT pgmq.create($1)`, queue);
+    } catch (e: any) {
+      // Ignore if queue already exists
+    }
+  }
+
+  async delete(
+    queue: string,
+    msgId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const client = tx || this.prisma;
+    await client.$executeRawUnsafe(`SELECT pgmq.delete($1, $2)`, queue, msgId);
     // Return true for now as we are not using the result
     return true;
   }
