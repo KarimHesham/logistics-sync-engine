@@ -4,7 +4,7 @@ import * as dotenv from "dotenv";
 import path from "node:path";
 
 // Fix for CJS execution context via tsx
-const envPath = path.resolve(__dirname, "../../apps/api/.env");
+const envPath = path.resolve(__dirname, "./.env");
 console.log("Loading env from:", envPath);
 dotenv.config({ path: envPath });
 
