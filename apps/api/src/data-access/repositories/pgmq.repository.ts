@@ -61,7 +61,11 @@ export class PgmqRepository {
     tx?: Prisma.TransactionClient,
   ): Promise<boolean> {
     const client = tx || this.prisma;
-    await client.$executeRawUnsafe(`SELECT pgmq.delete($1, $2)`, queue, msgId);
+    await client.$executeRawUnsafe(
+      `SELECT pgmq.delete($1::text, $2::bigint)`,
+      queue,
+      msgId,
+    );
     // Return true for now as we are not using the result
     return true;
   }
