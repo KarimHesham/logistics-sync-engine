@@ -141,3 +141,63 @@ Run the chaos script via:
 # Example command (refer to scripts/chaos/README.md or package.json for details)
 pnpm filter scripts/chaos run start
 ```
+
+---
+
+## System Design Schema
+
+### Reliability & Race Condition Prevention
+
+The system uses a robust "Webhook -> Queue -> Worker -> DB" flow designed to handle high concurrency and out-of-order delivery.
+
+**Key Mechanisms:**
+
+1.  **PG Advisory Locks**: Serializes processing per `orderId` to prevent parallel workers from overwriting each other.
+2.  **Idempotency Keys**: Uses `dedupeKey` to track and ignore duplicate events.
+3.  **Logical Clocks**: Uses `lastEventTs` to detect and discard stale events (out-of-order delivery).
+
+```mermaid
+sequenceDiagram
+    participant Webhook as Webhook Controller
+    participant Queue as PG Queue (ingest_events)
+    participant Worker as Ingest Worker
+    participant DB as Postgres DB
+
+    Webhook->>Queue: Push Event (dedupeKey, eventTs)
+
+    loop Poll Loop
+        Worker->>Queue: Poll Messages
+        activate Worker
+        Queue-->>Worker: Batch of Events
+
+        loop For Each Event
+            Worker->>DB: Start Transaction
+
+            Note right of Worker: 1. Advisory Lock (Serialize access by OrderID)
+            Worker->>DB: pg_advisory_xact_lock(orderId)
+
+            Note right of Worker: 2. Idempotency Check
+            Worker->>DB: Find EventInbox(dedupeKey)
+
+            alt Event Already Processed
+                Worker->>DB: Ignore (Commit)
+            else New Event
+                Note right of Worker: 3. Out-of-Order Check
+                Worker->>DB: Fetch Order & Compare Timestamps
+
+                alt eventTs < order.lastEventTs
+                    Worker->>DB: Mark Inbox IGNORED_STALE
+                else eventTs >= order.lastEventTs
+                    Worker->>DB: Update Order & lastEventTs
+                    Worker->>DB: Mark Inbox PROCESSED
+                    Worker->>DB: Trigger Side Effects (Shipments, Outbound)
+                end
+
+                Note right of Worker: 4. Cleanup
+                Worker->>Queue: Delete Message
+                Worker->>DB: Commit Transaction
+            end
+        end
+        deactivate Worker
+    end
+```
