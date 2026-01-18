@@ -4,7 +4,14 @@
   "private": true,
   "scripts": {
     "start": "tsx index.ts",
-    "run": "tsx run.ts"
+    "run": "tsx run.ts",
+    "cleanup": "tsx cleanup.ts",
+    "test": "tsx test-suite.ts",
+    "test:clean": "tsx cleanup.ts && tsx test-suite.ts",
+    "test:flash-sale": "tsx test-suite.ts --skip-chaos",
+    "test:chaos": "tsx test-suite.ts --skip-flash-sale",
+    "test:quick": "tsx test-suite.ts --orders 50 --duration 30 --chaos-events 50",
+    "test:verbose": "tsx test-suite.ts --verbose --include-raw"
   },
   "dependencies": {
     "axios": "^1.6.2",
