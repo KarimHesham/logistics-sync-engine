@@ -85,6 +85,8 @@ export interface ChaosTestOptions {
   numEvents?: number;
   waitTimeMs?: number;
   concurrencyLimit?: number;
+  /** When true, fires all events simultaneously using Promise.all() (default: true) */
+  simultaneous?: boolean;
 }
 
 export async function runChaosTest(
@@ -95,6 +97,7 @@ export async function runChaosTest(
   const numEvents = options.numEvents || NUM_EVENTS;
   const waitTimeMs = options.waitTimeMs || 8000;
   const concurrencyLimit = options.concurrencyLimit || DEFAULT_CONCURRENCY;
+  const simultaneous = options.simultaneous ?? true; // Default to true for chaos test
 
   const startTime = new Date();
   const errors: string[] = [];
@@ -223,9 +226,22 @@ export async function runChaosTest(
       }
     }
 
-    // 3. Shuffle and fire events with controlled concurrency
+    // 3. Shuffle and fire events
     events.sort(() => Math.random() - 0.5);
-    await runWithConcurrencyLimit(events, concurrencyLimit);
+
+    if (simultaneous) {
+      // Fire ALL events simultaneously (true chaos test as per requirements)
+      console.log(
+        `[Chaos Test] Firing ${events.length} events SIMULTANEOUSLY...`
+      );
+      await Promise.all(events.map((fn) => fn()));
+    } else {
+      // Use concurrency limiting (for debugging/development)
+      console.log(
+        `[Chaos Test] Firing ${events.length} events with concurrency limit ${concurrencyLimit}...`
+      );
+      await runWithConcurrencyLimit(events, concurrencyLimit);
+    }
 
     // 4. Wait for processing
     await new Promise((r) => setTimeout(r, waitTimeMs));

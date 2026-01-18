@@ -109,8 +109,8 @@ export async function runTestSuite(
 
       const flashSaleOpts: FlashSaleOptions = {
         orderCount: 5000,
-        durationSec: 120, // Spread over 2 minutes for stability
-        batchSize: 50,
+        durationSec: 60, // Spread over 2 minutes for stability
+        batchSize: 100,
         waitTimeMs: 20000,
         webhooksPerOrder: 1,
         courierEventsPerOrder: 1,
@@ -165,12 +165,19 @@ export async function runTestSuite(
         numEvents: 100,
         waitTimeMs: 10000,
         concurrencyLimit: 20,
+        simultaneous: true, // Fire all 100 events at once (as per task requirements)
         ...options.chaosTestOptions,
       };
 
       console.log(`Configuration:`);
       console.log(`  - Total Events: ${chaosOpts.numEvents}`);
-      console.log(`  - Concurrency Limit: ${chaosOpts.concurrencyLimit}`);
+      console.log(
+        `  - Execution Mode: ${
+          chaosOpts.simultaneous
+            ? "SIMULTANEOUS (all at once)"
+            : `Throttled (${chaosOpts.concurrencyLimit} concurrent)`
+        }`
+      );
       console.log(`  - Wait Time: ${chaosOpts.waitTimeMs}ms`);
       console.log("");
 

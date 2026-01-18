@@ -177,4 +177,9 @@ async function cleanup(): Promise<void> {
 }
 
 // Run cleanup
-await cleanup();
+(async () => {
+  await cleanup();
+})().catch((err) => {
+  console.error("Fatal error:", err);
+  process.exit(1);
+});

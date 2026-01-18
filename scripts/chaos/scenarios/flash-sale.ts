@@ -161,9 +161,9 @@ export async function runFlashSale(
       // Ignore if already exists
     }
 
-    // Calculate batching
+    // Calculate batching to spread orders evenly over the duration
     const totalBatches = Math.ceil(orderCount / batchSize);
-    const delayBetweenBatches = (durationSec * 1000) / totalBatches;
+    const delayBetweenBatches = (durationSec * 1000) / totalBatches; // Convert seconds to ms
 
     console.log(
       `[Flash Sale] Starting: ${orderCount} orders in ${durationSec}s`
