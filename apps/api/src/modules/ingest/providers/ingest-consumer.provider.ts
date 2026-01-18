@@ -62,7 +62,7 @@ export class IngestConsumer implements OnModuleInit {
         const messages = await this.pgmqRepo.readWithPoll<IngestEventPayload>(
           this.QUEUE_NAME,
           30,
-          10,
+          2,
           5,
           200,
         );

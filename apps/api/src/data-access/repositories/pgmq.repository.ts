@@ -39,7 +39,7 @@ export class PgmqRepository {
   ): Promise<number> {
     const client = tx || this.prisma;
     const result = await client.$queryRawUnsafe<{ send: number }[]>(
-      `SELECT pgmq.send($1, $2, $3) as send`,
+      `SELECT pgmq.send($1::text, $2::jsonb, $3::integer) as send`,
       queue,
       msg,
       delay,
@@ -50,7 +50,7 @@ export class PgmqRepository {
   async createQueue(queue: string): Promise<void> {
     try {
       await this.prisma.$executeRawUnsafe(`SELECT pgmq.create($1)`, queue);
-    } catch (e: any) {
+    } catch {
       // Ignore if queue already exists
     }
   }
