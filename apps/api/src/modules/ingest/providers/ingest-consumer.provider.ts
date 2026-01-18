@@ -45,6 +45,44 @@ export class IngestConsumer implements OnModuleInit {
     private readonly shipmentsService: ShipmentsService,
   ) {}
 
+  /**
+   * Retry wrapper for transient database errors (P2028 - transaction timeout)
+   * Uses exponential backoff to handle connection pool exhaustion
+   */
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelayMs: number = 200,
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        // Check for P2028 (transaction timeout) or connection pool errors
+        const errorCode = (err as { code?: string })?.code;
+        const isRetryable =
+          errorCode === 'P2028' ||
+          lastError.message.includes('Unable to start a transaction');
+
+        if (isRetryable && attempt < maxRetries) {
+          const delay = baseDelayMs * Math.pow(2, attempt); // Exponential backoff
+          this.logger.warn(
+            `Retrying transaction (attempt ${attempt + 1}/${maxRetries}) after ${delay}ms`,
+          );
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        throw lastError;
+      }
+    }
+
+    throw lastError;
+  }
+
   onModuleInit() {
     this.startPolling();
   }
@@ -119,8 +157,9 @@ export class IngestConsumer implements OnModuleInit {
 
       let broadcastEvent: ShipmentUpdateEvent | null = null;
 
-      await this.prisma.$transaction(
-        async (tx) => {
+      await this.withRetry(() =>
+        this.prisma.$transaction(
+          async (tx) => {
           // 1. Acquire advisory lock
           await this.pgmqRepo.advisoryLockForOrder(payload.orderId, tx);
 
@@ -265,7 +304,8 @@ export class IngestConsumer implements OnModuleInit {
             msg_id,
           );
         },
-        { timeout: 20000 },
+        { timeout: 30000 }, // Increased from 20s to handle high load
+      ),
       );
 
       if (broadcastEvent) {
